@@ -1,14 +1,28 @@
 import { Component, OnInit } from '@angular/core';
 // import { NgForm } from '@angular/forms';
-import { FormGroup, /* FormControl, */ FormBuilder, Validators, AbstractControl } from '@angular/forms';
+import { FormGroup, /* FormControl, */ FormBuilder, Validators, AbstractControl, ValidatorFn } from '@angular/forms';
 
 import { Customer } from './customer';
 
-function ratingRange(c: AbstractControl): {[key: string]: boolean} | null {
-    if(c.value != undefined && (isNaN(c.value) || c.value < 1 || c.value > 5)){
-        return {'range': true};
+function emailMatcher(c: AbstractControl) {
+    let emailControl = c.get('email');
+    let confirmControl = c.get('confirmEmail');
+    if(emailControl.pristine || confirmControl.pristine) {
+        return null;
     }
-    return null;
+    if(emailControl.value === confirmControl.value) {
+        return null;
+    }
+    return { 'match' : true };
+}
+
+function ratingRange(min: number, max: number): ValidatorFn {
+     return (c: AbstractControl): {[key: string]: boolean} | null => {
+        if(c.value != undefined && (isNaN(c.value) || c.value < min || c.value > max)){
+            return {'range': true};
+        }
+        return null;
+    }
 }
 
 @Component({
@@ -28,10 +42,13 @@ export class CustomerComponent implements OnInit  {
             firstName: ['', [Validators.required, Validators.minLength(3)]],
             // lastName:{value: 'n/a', disabled:true},
             lastName:['', [Validators.required, Validators.maxLength(50)]],
-            email:['', [Validators.required, Validators.pattern('[a-z0-9._%+-]+@[a-z0-9.-]+')]],
+            emailGroup: this.fb.group({
+                email:['', [Validators.required, Validators.pattern('[a-z0-9._%+-]+@[a-z0-9.-]+')]],
+                confirmEmail: ['', Validators.required]
+            }, {validator: emailMatcher}),
             phone:'',
             notification: 'email',
-            rating: ['', ratingRange],
+            rating: ['', ratingRange(1, 5)],
             sendCatalog: true
         });
 
